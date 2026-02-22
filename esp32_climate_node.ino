@@ -20,6 +20,8 @@ const char* org = INFLUX_ORG;
 const char* bucket = INFLUX_BUCKET;
 const char* token = INFLUX_TOKEN;
 
+char influx_url[256];
+
 Adafruit_BME280 bme;
 
 /*
@@ -27,11 +29,6 @@ TODO [Architecture]:
 - Refactor WiFi and HTTP logic into dedicated functions to separate networking from sensor logic.
 - Move InfluxDB Line Protocol construction into its own function to simplify loop() and improve readability.
 - Remove Serial.print's that might be redudant, and maybe even replace some with a compile-time DEBUG flag.
-
-TODO [Performance]:
-- Optimize HTTP request handling and reduce repeated object creation
-  * Pre-build the static URL once.
-  * Use a stack buffer instead of String when building the payload.
 
 TODO [Power]:
 - Change sampling interval from every 10 seconds to every 30 minutes when deploying.
@@ -65,12 +62,18 @@ void setup() {
   float humidity = bme.readHumidity();
   float pressure = bme.readPressure() / 100.0F;
 
+  /* Build URL */
+  snprintf(
+    influx_url, sizeof(influx_url), 
+    "%s/api/v2/write?org=%s&bucket=%s&precision=s", 
+    INFLUX_HOST, INFLUX_ORG, INFLUX_BUCKET);
+
   post_influxdb(temperature, humidity, pressure);
 
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
 
-  Serial.println("Data sent to InfluxDB, going to sleep.");
+  Serial.println("Transmission finished, going to sleep.");
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
@@ -105,12 +108,9 @@ void post_influxdb(float temp, float hum, float pres) {
   }
 
   HTTPClient http;
+  http.begin(influx_url);
 
-  String url = String(INFLUX_HOST) + "/api/v2/write?org=" + INFLUX_ORG + "&bucket=" + INFLUX_BUCKET + "&precision=s";
-
-  http.begin(url);
-
-  http.addHeader("Authorization", "Token " + String(INFLUX_TOKEN));
+  http.addHeader("Authorization", "Token " INFLUX_TOKEN);
   http.addHeader("Content-Type", "text/plain; charset=utf-8");
 
   /*
@@ -124,10 +124,28 @@ void post_influxdb(float temp, float hum, float pres) {
   - The fields corresponds to each metric collected, i.e. temperature, humidity, and pressure.
   */
 
-  String data = "environment,location=livingroom ";
-  data += "temperature=" + String(temp);
-  data += ",humidity=" + String(hum);
-  data += ",pressure=" + String(pres);
+  char payload[128];
+
+  int len = snprintf(
+    payload, sizeof(payload), 
+    "indoor_climate,location=test temperature=%.2f,humidity=%.2f,pressure=%.2f",
+    temp, hum, pres
+  );
+
+  if (len < 0 || len >= sizeof(payload)) {
+    Serial.println("Payload truncated or error.");
+    http.end();
+    return;
+  }
+
+  int httpResponseCode = http.POST((uint8_t*)payload, len);
+
+  if (httpResponseCode == 204) {
+    Serial.println("InfluxDB write successful.");
+  } else {
+    Serial.print("InfluxDB write failed, code: ");
+    Serial.println(httpResponseCode);
+  }
 
   http.end();
 }
