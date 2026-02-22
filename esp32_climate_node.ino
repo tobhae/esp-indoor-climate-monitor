@@ -128,10 +128,10 @@ void send_to_influx(float temp, float hum, float pres) {
   data += ",humidity=" + String(hum);
   data += ",pressure=" + String(pres);
 
-  int httpResonseCode = http.POST(data);
+  int httpResponseCode = http.POST(data);
 
   Serial.print("HTTP Response: ");
-  Serial.println(httpResonseCode);
+  Serial.println(httpResponseCode);
 
   http.end();
 }
