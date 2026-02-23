@@ -33,7 +33,7 @@ Adafruit_BME280 bme;  // BME280 sensor instance (I2C)
 
 /*
 TODO [Architecture]:
-- Remove Serial.print's that might be redudant, and maybe even replace some with a compile-time DEBUG flag.
+- Add a compile-time DEBUG flag for prints, since these prints are unncessary when the node is deployed.
 
 TODO [Portability]:
 - Consider moving location (InfluxDB Line Protocol) to a configurable constant or secrets/config file for easier deployment of multiple nodes.
@@ -41,6 +41,17 @@ TODO [Portability]:
   * Replace WiFi.h with ESP8266WiFi.h
   * Adjust HTTP client usage
   * Update deep sleep implementation
+
+TODO [QoL]:
+- The node should use a static IP to reduce WiFi time every wake up.
+- Add one retry attempt if post_influxdb fails.
+- Failed sends could be stored in a local buffer until connection to InfluxDB/WiFi is restored.
+- Consider improving the InfluxDB Line Protocol with new tags, e.g. device_id, etc.
+- NTP time sync, the current timestamps is the arrival in InfluxDB. 
+  * Using local buffering, this must be implemented to ensure data correctness.
+- Over-the-air update. If implemented, this would probably be after deployment and one of the last things to do. 
+  * Would require a web server on the network where the nodes can download the new firmware from (using a periodic check).
+  * Consider implementing a firmware_version tag (InfluxDB Line Protocol) for easy tracking of not updated nodes.
 */
 
 void setup() {
