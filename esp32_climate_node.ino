@@ -13,6 +13,10 @@
 /* WiFi credentials (defined in secrets.h) */
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
+IPAddress ip(WIFI_STATIC_IP);
+IPAddress dns(WIFI_DNS);
+IPAddress gateway(WIFI_GATEWAY);
+IPAddress subnet(WIFI_SUBNET);
 
 /* InfluxDB connection parameters (defined in secrets.h) */
 const char* influx_host = INFLUX_HOST;
@@ -43,7 +47,6 @@ TODO [Portability]:
   * Update deep sleep implementation
 
 TODO [QoL]:
-- The node should use a static IP to reduce WiFi time every wake up.
 - Add one retry attempt if post_influxdb fails.
 - Failed sends could be stored in a local buffer until connection to InfluxDB/WiFi is restored.
 - Consider improving the InfluxDB Line Protocol with new tags, e.g. device_id, etc.
@@ -108,6 +111,7 @@ void init_hardware() {
 
 bool connect_wifi() {
   /* Attempts to connect to configured WiFi network (configured in secrets.h). Returns true if connection succeeds, otherwise false. */
+  WiFi.config(ip, dns, gateway, subnet);
   WiFi.begin(ssid, password);
 
   unsigned long start = millis();
@@ -119,6 +123,7 @@ bool connect_wifi() {
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("Connected to WiFi.");
+    Serial.println(WiFi.localIP());
     return true;
   }
 
