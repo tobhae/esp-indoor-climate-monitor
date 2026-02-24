@@ -4,6 +4,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <esp_sleep.h>
+#include <time.h>
 #include <secrets.h>
 
 #define SEALEVELPRESSURE_HPA (1013.25)
@@ -50,8 +51,6 @@ TODO [QoL]:
 - Add one retry attempt if post_influxdb fails.
 - Failed sends could be stored in a local buffer until connection to InfluxDB/WiFi is restored.
 - Consider improving the InfluxDB Line Protocol with new tags, e.g. device_id, etc.
-- NTP time sync, the current timestamps is the arrival in InfluxDB. 
-  * Using local buffering, this must be implemented to ensure data correctness.
 - Over-the-air update. If implemented, this would probably be after deployment and one of the last things to do. 
   * Would require a web server on the network where the nodes can download the new firmware from (using a periodic check).
   * Consider implementing a firmware_version tag (InfluxDB Line Protocol) for easy tracking of not updated nodes.
@@ -61,12 +60,17 @@ void setup() {
   init_hardware();
   build_influxdb_url();
 
-  ClimateData data = read_climate();
-
   if(!connect_wifi()) {
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
     esp_deep_sleep_start();
   }
+
+  if(!sync_time()) {
+    esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    esp_deep_sleep_start();
+  }
+
+  ClimateData data = read_climate();
 
   char payload[128];
 
@@ -114,7 +118,7 @@ bool connect_wifi() {
   #if USE_STATIC_IP
   WiFi.config(ip, dns, gateway, subnet);
   #endif
-  
+
   WiFi.begin(ssid, password);
 
   unsigned long start = millis();
@@ -134,6 +138,42 @@ bool connect_wifi() {
   return false;
 }
 
+bool sync_time() {
+  /* Synchronizes system time using NTP */
+  configTime(0, 0, "europe.pool.ntp.org"); // Consider adding location to a config file
+
+  const unsigned long timeout = 10000;
+  unsigned long start = millis();
+
+  time_t now = time(nullptr);
+
+  while(now < 100000 && millis() - start < timeout) {
+    delay(200);
+    now = time(nullptr);
+  }
+
+  if (now < 10000) {
+    Serial.println("NTP synchronization failed.");
+    return false;
+  }
+
+  /* Debugging, print readable time */
+
+  struct tm timeinfo;
+  gmtime_r(&now, &timeinfo); // UTC
+  char timeString [32];
+  strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", &timeinfo);
+
+  Serial.print("NTP Time: ");
+  Serial.println(now);
+
+  Serial.print("UTC Time: ");
+  Serial.println(timeString);
+
+  Serial.println("Time synchronized.");
+  return true;
+}
+
 ClimateData read_climate() {
   /* Reads temperature, humidity, and pressure from BME280. */
   ClimateData data;
@@ -149,6 +189,30 @@ void build_influxdb_url() {
   snprintf(influx_url, sizeof(influx_url), 
            "%s/api/v2/write?org=%s&bucket=%s&precision=s",
            influx_host, influx_org, influx_bucket);
+}
+
+bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
+
+  /*
+  Formats ClimateData into InfluxDB Line Protocol.
+
+  InfluxDB Line Protocol format:
+
+  measurement, tag=value field1=value1, field2=value2, field3=value3
+
+  NOTE:
+  - The measurement name is required by InfluxDB and groups related metrics logically.
+  - The tag describes which location the node is deployed in, e.g. kitchen, bathroom, bedroom, or livingroom.
+  - The fields corresponds to each metric collected, i.e. temperature, humidity, and pressure.
+  */
+
+  time_t now = time(nullptr);
+
+  int len = snprintf(buffer, size, 
+  "indoor_climate,location=test temperature=%.2f,humidity=%.2f,pressure=%.2f %ld",
+  data.temperature, data.humidity, data.pressure, now);
+
+  return (len > 0 && len < size);
 }
 
 bool post_influxdb(const char* payload, size_t len) {
@@ -173,26 +237,4 @@ bool post_influxdb(const char* payload, size_t len) {
   http.end();
 
   return (httpResponseCode == 204);
-}
-
-bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
-
-  /*
-  Formats ClimateData into InfluxDB Line Protocol.
-
-  InfluxDB Line Protocol format:
-
-  measurement, tag=value field1=value1, field2=value2, field3=value3
-
-  NOTE:
-  - The measurement name is required by InfluxDB and groups related metrics logically.
-  - The tag describes which location the node is deployed in, e.g. kitchen, bathroom, bedroom, or livingroom.
-  - The fields corresponds to each metric collected, i.e. temperature, humidity, and pressure.
-  */
-
-  int len = snprintf(buffer, size, 
-  "indoor_climate,location=test temperature=%.2f,humidity=%.2f,pressure=%.2f",
-  data.temperature, data.humidity, data.pressure);
-
-  return (len > 0 && len < size);
 }
