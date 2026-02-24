@@ -111,7 +111,10 @@ void init_hardware() {
 
 bool connect_wifi() {
   /* Attempts to connect to configured WiFi network (configured in secrets.h). Returns true if connection succeeds, otherwise false. */
+  #if USE_STATIC_IP
   WiFi.config(ip, dns, gateway, subnet);
+  #endif
+  
   WiFi.begin(ssid, password);
 
   unsigned long start = millis();
