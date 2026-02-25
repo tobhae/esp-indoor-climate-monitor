@@ -25,6 +25,8 @@ const char* influx_token = INFLUX_TOKEN;
 
 /* Node configuration (defined in config.h) */
 const char* time_to_sleep = TIME_TO_SLEEP;
+const char* node_location = NODE_LOCATION;
+const char* ntp_server = NTP_SERVER;
 
 /* Represents a single measurement sample */
 struct ClimateData {
@@ -141,7 +143,7 @@ bool connect_wifi() {
 
 bool sync_time() {
   /* Synchronizes system time using NTP */
-  configTime(0, 0, "europe.pool.ntp.org"); // Consider adding location to a config file
+  configTime(0, 0, ntp_server);
 
   const unsigned long timeout = 10000;
   unsigned long start = millis();
@@ -210,8 +212,8 @@ bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
   time_t now = time(nullptr);
 
   int len = snprintf(buffer, size, 
-  "indoor_climate,location=test temperature=%.2f,humidity=%.2f,pressure=%.2f %ld",
-  data.temperature, data.humidity, data.pressure, now);
+  "indoor_climate,location=%s temperature=%.2f,humidity=%.2f,pressure=%.2f %ld",
+  node_location, data.temperature, data.humidity, data.pressure, now);
 
   return (len > 0 && len < size);
 }

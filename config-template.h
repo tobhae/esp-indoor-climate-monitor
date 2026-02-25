@@ -33,3 +33,5 @@
 
 /* Node configuration */
 #define TIME_TO_SLEEP (15)
+#define NODE_LOCATION "Test"
+#define NTP_SERVER "europe.pool.ntp.org"
