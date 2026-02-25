@@ -7,8 +7,6 @@
 #include <time.h>
 #include <config.h>
 
-#define uS_TO_S_FACTOR 1000000ULL
-
 /* WiFi credentials (defined in config.h) */
 const char* ssid = WIFI_SSID;
 const char* password = WIFI_PASSWORD;
@@ -24,7 +22,7 @@ const char* influx_bucket = INFLUX_BUCKET;
 const char* influx_token = INFLUX_TOKEN;
 
 /* Node configuration (defined in config.h) */
-const char* time_to_sleep = TIME_TO_SLEEP;
+const int time_to_sleep = TIME_TO_SLEEP;
 const char* node_location = NODE_LOCATION;
 const char* ntp_server = NTP_SERVER;
 
@@ -44,7 +42,6 @@ TODO [Architecture]:
 - Add a compile-time DEBUG flag for prints, since these prints are unncessary when the node is deployed.
 
 TODO [Portability]:
-- Consider moving location (InfluxDB Line Protocol) to a configurable constant or secrets/config file for easier deployment of multiple nodes.
 - Might migrate to ESP8266 due to implications when designing an enclosure for the ESP32 (missing screwholes on the board, cost, etc.).
   * Replace WiFi.h with ESP8266WiFi.h
   * Adjust HTTP client usage
@@ -64,12 +61,12 @@ void setup() {
   build_influxdb_url();
 
   if(!connect_wifi()) {
-    esp_sleep_enable_timer_wakeup(time_to_sleep * uS_TO_S_FACTOR);
+    esp_sleep_enable_timer_wakeup(time_to_sleep * 1000000ULL);
     esp_deep_sleep_start();
   }
 
   if(!sync_time()) {
-    esp_sleep_enable_timer_wakeup(time_to_sleep * uS_TO_S_FACTOR);
+    esp_sleep_enable_timer_wakeup(time_to_sleep * 1000000ULL);
     esp_deep_sleep_start();
   }
 
@@ -92,7 +89,7 @@ void setup() {
 
   /* After successful transmission, enter deep sleep. */
   Serial.println("Transmission finished, going to sleep.");
-  esp_sleep_enable_timer_wakeup(time_to_sleep * uS_TO_S_FACTOR);
+  esp_sleep_enable_timer_wakeup(time_to_sleep * 1000000ULL); // Convert seconds to microseconds (1s = 1 000 000µs).
   esp_deep_sleep_start();
 }
 
