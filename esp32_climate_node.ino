@@ -6,6 +6,7 @@
 #include <esp_sleep.h>
 #include <time.h>
 #include <config.h>
+#include <debug.h>
 
 /* Represents a single measurement sample */
 struct ClimateData {
@@ -27,9 +28,6 @@ RTC_DATA_ATTR uint8_t buffer_tail = 0;    // Next write position
 RTC_DATA_ATTR uint8_t buffer_count = 0;   // Number of stored entries
 
 /*
-TODO [Architecture]:
-- Add a compile-time DEBUG flag for prints, since these prints are unncessary when the node is deployed.
-
 TODO [Portability]:
 - Might migrate to ESP8266 due to implications when designing an enclosure for the ESP32 (missing screwholes on the board, cost, etc.).
   * Replace WiFi.h with ESP8266WiFi.h
@@ -82,17 +80,19 @@ void loop() {
 
 void init_hardware() {
   /* Initializes serial communication, I2C bus, and BME280 sensor. Halts execution if sensor initialization fails. */
+  DEBUG_BLOCK({
+    
+  });
   Serial.begin(115200);
-  delay(1000);
-
+  delay(500);
   Wire.begin(I2C_SDA, I2C_SCL);
 
   if (!bme.begin(0x76) && !bme.begin(0x77)) {
-    Serial.println("BME280 not found.");
+    DEBUG_PRINTLN("BME280 not found.");
     while (1);
   }
 
-  Serial.println("BME280 ready.");
+  DEBUG_PRINTLN("BME280 ready.");
 }
 
 bool connect_wifi() {
@@ -115,12 +115,12 @@ bool connect_wifi() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("Connected to WiFi.");
-    Serial.println(WiFi.localIP());
+    DEBUG_PRINT("Connected to WiFi with IP: ");
+    DEBUG_PRINTLN(WiFi.localIP());
     return true;
   }
 
-  Serial.println("WiFi connection failed.");
+  DEBUG_PRINTLN("WiFi connection failed.");
   return false;
 }
 
@@ -139,24 +139,26 @@ bool sync_time() {
   }
 
   if (now < 10000) {
-    Serial.println("NTP synchronization failed.");
+    DEBUG_PRINTLN("NTP synchronization failed.");
     return false;
   }
 
-  /* Debugging, print readable time */
+  DEBUG_BLOCK({
+    /* Debugging prints */
+    struct tm timeinfo;
+    gmtime_r(&now, &timeinfo); // UTC
+    char timeString [32];
+    strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
-  struct tm timeinfo;
-  gmtime_r(&now, &timeinfo); // UTC
-  char timeString [32];
-  strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    Serial.print("NTP: ");
+    Serial.println(now);
 
-  Serial.print("NTP Time: ");
-  Serial.println(now);
+    Serial.print("UTC: ");
+    Serial.println(timeString);
 
-  Serial.print("UTC Time: ");
-  Serial.println(timeString);
+    Serial.println("Time synchronized.");
+  });
 
-  Serial.println("Time synchronized.");
   return true;
 }
 
@@ -179,18 +181,16 @@ void build_influxdb_url() {
 
 bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
 
-  /*
-  Formats ClimateData into InfluxDB Line Protocol.
+  /* Formats ClimateData into InfluxDB Line Protocol.
 
-  InfluxDB Line Protocol format:
+     InfluxDB Line Protocol format:
 
-  measurement, tag=value field1=value1, field2=value2, field3=value3 timestamp
+     measurement, tag=value field1=value1, field2=value2, field3=value3 timestamp
 
-  NOTE:
-  - The measurement name is required by InfluxDB and groups related metrics logically.
-  - The tag describes which location the node is deployed in, e.g. kitchen, bathroom, bedroom, or livingroom.
-  - The fields corresponds to each metric collected, i.e. temperature, humidity, and pressure.
-  */
+     NOTE:
+     - The measurement name is required by InfluxDB and groups related metrics logically.
+     - The tag describes which location the node is deployed in, e.g. kitchen, bathroom, bedroom, or livingroom.
+     - The fields corresponds to each metric collected, i.e. temperature, humidity, and pressure. */
 
   time_t now = time(nullptr);
 
@@ -204,7 +204,7 @@ bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
 bool post_influxdb(const char* payload, size_t len) {
   /* Send provided Line Protocol payload to InfluxDB, returns true if HTTP response is successful (204). */
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi connection failed.");
+    DEBUG_PRINTLN("WiFi connection failed.");
     return false;
   }
 
@@ -220,13 +220,15 @@ bool post_influxdb(const char* payload, size_t len) {
   http.addHeader("Content-Type", "text/plain; charset=utf-8");
 
   int httpResponseCode = http.POST((uint8_t*)payload, len);
+  DEBUG_PRINT("HTTP Response Code: ");
+  DEBUG_PRINTLN(httpResponseCode);
   http.end();
 
   return (httpResponseCode == 204);
 }
 
 void enter_deep_sleep() {
-  Serial.println("Shutting down WiFi and entering deep sleep.");
+  DEBUG_PRINTLN("Shutting down WiFi and entering deep sleep.");
 
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
@@ -249,10 +251,10 @@ bool buffer_push(const char* payload) {
   buffer_tail = (buffer_tail  + 1) %  BUFFER_CAPACITY;
   buffer_count++;
 
-  /* Debugging prints */
-  Serial.print("Buffer push count: ");
-  Serial.println(buffer_count);
-
+  /* Debugging */
+  DEBUG_PRINT("Buffer push count: ");
+  DEBUG_PRINTLN(buffer_count);
+  
   return true;
 }
 
@@ -274,7 +276,7 @@ void buffer_pop() {
   buffer_head = (buffer_head + 1) % BUFFER_CAPACITY;
   buffer_count--;
 
-  Serial.print("Buffer entry sent and removed");
+  DEBUG_PRINTLN("Buffer entry sent and removed.");
 }
 
 bool flush_buffer() {
@@ -283,8 +285,8 @@ bool flush_buffer() {
     const char* payload = buffer_peek();
 
     /* Debugging prints */
-    Serial.print("Flushing entry, remaining: ");
-    Serial.println(buffer_count);
+    DEBUG_PRINT("Flushing entry, remaining: ");
+    DEBUG_PRINTLN(buffer_count);
 
     if (!post_influxdb(payload, strlen(payload))) {
       return false;
@@ -293,10 +295,12 @@ bool flush_buffer() {
     buffer_pop();
 
     /* Debugging prints */
-    Serial.print("Head: ");
-    Serial.println(buffer_head);
-    Serial.print("Tail: ");
-    Serial.println(buffer_tail);
+    DEBUG_BLOCK({
+      Serial.print("Head: ");
+      Serial.println(buffer_head);
+      Serial.print("Tail: ");
+      Serial.println(buffer_tail);
+    });
   }
 
   return true;
