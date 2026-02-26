@@ -7,25 +7,6 @@
 #include <time.h>
 #include <config.h>
 
-/* WiFi credentials (defined in config.h) */
-const char* ssid = WIFI_SSID;
-const char* password = WIFI_PASSWORD;
-IPAddress ip(WIFI_STATIC_IP);
-IPAddress dns(WIFI_DNS);
-IPAddress gateway(WIFI_GATEWAY);
-IPAddress subnet(WIFI_SUBNET);
-
-/* InfluxDB connection parameters (defined in config.h) */
-const char* influx_host = INFLUX_HOST;
-const char* influx_org = INFLUX_ORG;
-const char* influx_bucket = INFLUX_BUCKET;
-const char* influx_token = INFLUX_TOKEN;
-
-/* Node configuration (defined in config.h) */
-const int time_to_sleep = TIME_TO_SLEEP;
-const char* node_location = NODE_LOCATION;
-const char* ntp_server = NTP_SERVER;
-
 /* Represents a single measurement sample */
 struct ClimateData {
   float temperature;  // °C
@@ -48,7 +29,6 @@ RTC_DATA_ATTR uint8_t buffer_count = 0;   // Number of stored entries
 /*
 TODO [Architecture]:
 - Add a compile-time DEBUG flag for prints, since these prints are unncessary when the node is deployed.
-- Remove redundant config globals and use config.h macros directly.
 
 TODO [Portability]:
 - Might migrate to ESP8266 due to implications when designing an enclosure for the ESP32 (missing screwholes on the board, cost, etc.).
@@ -119,10 +99,14 @@ void init_hardware() {
 bool connect_wifi() {
   /* Attempts to connect to configured WiFi network (configured in config.h). Returns true if connection succeeds, otherwise false. */
   #if USE_STATIC_IP
-  WiFi.config(ip, dns, gateway, subnet);
+  WiFi.config(
+    IPAddress (WIFI_STATIC_IP),
+    IPAddress (WIFI_DNS),
+    IPAddress (WIFI_GATEWAY),
+    IPAddress (WIFI_SUBNET));
   #endif
 
-  WiFi.begin(ssid, password);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   unsigned long start = millis();
   const unsigned long timeout = 15000;
@@ -143,7 +127,7 @@ bool connect_wifi() {
 
 bool sync_time() {
   /* Synchronizes system time using NTP */
-  configTime(0, 0, ntp_server);
+  configTime(0, 0, NTP_SERVER);
 
   const unsigned long timeout = 10000;
   unsigned long start = millis();
@@ -191,7 +175,7 @@ void build_influxdb_url() {
   /* Constructs the full InfluxDB write endpoint URL */
   snprintf(influx_url, sizeof(influx_url), 
            "%s/api/v2/write?org=%s&bucket=%s&precision=s",
-           influx_host, influx_org, influx_bucket);
+           INFLUX_HOST, INFLUX_ORG, INFLUX_BUCKET);
 }
 
 bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
@@ -213,7 +197,7 @@ bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
 
   int len = snprintf(buffer, size, 
   "indoor_climate,location=%s temperature=%.2f,humidity=%.2f,pressure=%.2f %ld",
-  node_location, data.temperature, data.humidity, data.pressure, now);
+  NODE_LOCATION, data.temperature, data.humidity, data.pressure, now);
 
   return (len > 0 && len < size);
 }
@@ -231,7 +215,7 @@ bool post_influxdb(const char* payload, size_t len) {
   /* Authorization header */
   char auth_header[128];
   snprintf(auth_header, sizeof(auth_header),
-          "Token %s", influx_token);
+          "Token %s", INFLUX_TOKEN);
 
   http.addHeader("Authorization", auth_header);
   http.addHeader("Content-Type", "text/plain; charset=utf-8");
@@ -248,7 +232,7 @@ void enter_deep_sleep() {
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
 
-  esp_sleep_enable_timer_wakeup(time_to_sleep * 1000000ULL);
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
   esp_deep_sleep_start();
 }
 
