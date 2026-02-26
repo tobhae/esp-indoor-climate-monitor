@@ -1,16 +1,16 @@
 # Distributed Indoor Climate Monitor System
 
-Battery-powered distributed indoor climate monitoring system built with ESP32 microcontrollers and BME280 environmental sensors. 
+Battery-powered distributed indoor climate monitoring system built with ESP8266 microcontroller and BME280 environmental sensor. 
 
 Each node collects temperature, humidity, and pressure data and transmits measurements over WiFi to an InfluxDB database. Data is visualized using Grafana for real-time and historical analysis.
 
 ## Architecture
 
-ESP32 Node → InfluxDB (Docker) → Grafana Dashboard
+ESP8266 Node → InfluxDB (Docker) → Grafana Dashboard
 
 ## Tech Stack
 
-- ESP32 firmware (Arduino framework)
+- ESP8266 firmware (Arduino framework)
 - BME280 sensor (I2C)
 - InfluxDB 2.7 (Docker)
 - Grafana (Docker)
