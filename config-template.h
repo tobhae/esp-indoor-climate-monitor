@@ -1,14 +1,18 @@
 #pragma once
 
-/* This project requires a local config.h file containing WiFi and InfluxDB credentials.
+/* This file contains per-node configuration for the climate monitoring system.
 
-   You need to:
+   It defines WiFi credentials, InfluxDB connection settings,
+   network configuration, and node-specific parameters such as
+   sleep interval, physical deployment location, and NTP server.
+
+   Instructions:
    1. Create a new file named "config.h" in the same folder.
-   2. Copy the contents of this template into secrets.h.
-   3. Fill in your own credentials.
+   2. Copy the contents of this template into config.h.
+   3. Fill in the configuration values.
 
    Note:
-   The file "config.h" is ignored by Git and remains local. */
+   config.h is ignored by Git and remains local. */
 
 /* WiFi */
 #define WIFI_SSID       "<YOUR_WIFI_SSID>"
@@ -21,7 +25,7 @@
 #define INFLUX_TOKEN    "<INFLUXDB_TOKEN>"
 
 /* Static IP configuration
-   0 = Use DHCP
+   0 = Use DHCP 
    1 = Use manual static IP settings below */
 #define USE_STATIC_IP   0
 
@@ -32,6 +36,6 @@
 #define WIFI_SUBNET     255,255,255,0
 
 /* Node configuration */
-#define TIME_TO_SLEEP (15)
-#define NODE_LOCATION "Test"
-#define NTP_SERVER "europe.pool.ntp.org"
+#define TIME_TO_SLEEP   (30 * 60)         /* Sleep interval in seconds */ 
+#define NODE_LOCATION   "<NODE_LOCATION>" /* Physical deployment location (e.g. livingroom, office, etc.) */ 
+#define NTP_SERVER      "pool.ntp.org"    /* https://www.ntppool.org/en/ */  
