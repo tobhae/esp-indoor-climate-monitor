@@ -25,8 +25,7 @@
 #define INFLUX_TOKEN    "<INFLUXDB_TOKEN>"
 
 /* I2C configuration 
-   ESP32:   SDA = 21, SCL = 22 
-   ESP8266: SDA = 4, SCL = 5 */
+   ESP32:   SDA = 21, SCL = 22 */
 #define I2C_SDA         21
 #define I2C_SCL         22
 
