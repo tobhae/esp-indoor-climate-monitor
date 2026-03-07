@@ -4,7 +4,7 @@
 
 /* OTA configuration */
 
-#define OTA_VERSION_URL     ""
+#define OTA_VERSION_URL     "https://raw.githubusercontent.com/tobhae/esp-indoor-climate-monitor/ota-implementation/version.txt"
 #define OTA_FIRMWARE_URL    ""
 #define OTA_CHECK_INTERVAL  48  /* Check for update every n cycles */
 
