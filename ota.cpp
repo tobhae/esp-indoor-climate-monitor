@@ -7,9 +7,25 @@
 #include "debug.h"
 #include "ota.h"
 
+/* Provides Over-The-Air (OTA) firmware update functionality
+   for the indoor climate monitor node.
+   
+   The module periodically checks a remote version file to
+   determine whether a newer firmware version is available.
+   If a newer version is detected, the firmware binary is 
+   downlaoded from a GitHub and written to the inactive
+   partition. */
+
 RTC_DATA_ATTR uint16_t wake_counter = 0;
 
+/* Update the firmware to the latest version */
 bool perform_update() {
+/* Firmware is written to the inactive OTA partition
+   and the running firmware is never overwritten.
+
+   After Update.end() succeeds, the ESP32 bootloader
+   switches the active partition on the next reboot. */
+
     DEBUG_PRINTLN("Starting OTA update...");
 
     HTTPClient http;
@@ -67,7 +83,8 @@ bool perform_update() {
         return false;
     }
 
-    DEBUG_PRINTLN("OTA update successful. Rebooting...");
+    DEBUG_PRINTLN("OTA update successful.");
+    DEBUG_PRINTLN("Rebooting...");
 
     http.end();
 
@@ -100,15 +117,6 @@ void check_for_update() {
 
     int httpCode = http.GET();
 
-    /* HTTP_CODE_OK = 200,
-       HTTP_CODE_CREATED = 201,
-       HTTP_CODE_ACCEPTED = 202,
-       HTTP_CODE_NO_CONTENT = 204,
-       HTTP_CODE_BAD_REQUEST = 400,
-       HTTP_CODE_UNAUTHORIZED = 401,
-       HTTP_CODE_FORBIDDEN = 403,
-       HTTP_CODE_NOT_FOUND = 404 */
-
     if (httpCode != HTTP_CODE_OK) {
         DEBUG_PRINTLN("OTA version request failed.");
         http.end();
@@ -137,7 +145,7 @@ void check_for_update() {
     DEBUG_PRINT("Remote firmware version: ");
     DEBUG_PRINTLN(remote_version);
 
-    if (strncmp(remote_version, FIRMWARE_VERSION, sizeof(remote_version)) != 0) {
+    if (strncmp(remote_version, FIRMWARE_VERSION) != 0) {
         DEBUG_PRINTLN("New firmware available.");
         perform_update();
     } else {

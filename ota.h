@@ -2,7 +2,8 @@
 
 #include <stdint.h>
 
-/* OTA configuration */
+/* Configuration values and function declarations
+   for the OTA update module implemented in ota.cpp.  */
 
 #define OTA_VERSION_URL     "https://raw.githubusercontent.com/tobhae/esp-indoor-climate-monitor/ota-implementation/version.txt"
 #define OTA_FIRMWARE_URL    ""
