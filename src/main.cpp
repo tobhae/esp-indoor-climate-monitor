@@ -11,7 +11,9 @@
 #include "ota.h"
 #include "ntp.h"
 
-/* TODO: Some comment or description of the program would be nice. */
+/* Firmware entry point and high-level execution flow for the ESP32 node. 
+   All work is executed in setup() and the device enter deep sleep when
+   the cycle is complete. */
 
 void setup() {
   init_hardware();
