@@ -15,16 +15,7 @@
 #include "wifi.h"
 #include "buffer.h"
 #include "influx.h"
-
-/* Represents a single measurement sample */
-struct ClimateData {
-  float temperature;  // °C
-  float humidity;     // %
-  float pressure;     // hPa
-};
-
-
-Adafruit_BME280 bme;  // BME280 sensor instance (I2C)
+#include "sensor.h"
 
 void setup() {
   init_hardware();
@@ -67,24 +58,6 @@ void loop() {
   /* Function unused. Execution cycle occurs entirely in setup() and enters deep sleep when finished. */
 }
 
-void init_hardware() {
-  /* Initializes serial communication, I2C bus, and BME280 sensor. 
-     Halts execution if sensor initialization fails. */
-  DEBUG_BLOCK({
-    Serial.begin(115200);
-    delay(500);
-  });
-
-  Wire.begin(I2C_SDA, I2C_SCL);
-
-  if (!bme.begin(0x76) && !bme.begin(0x77)) {
-    DEBUG_PRINTLN("BME280 not found.");
-    while (1);
-  }
-
-  DEBUG_PRINTLN("BME280 ready.");
-}
-
 bool sync_time() {
   /* Synchronizes system time using NTP */
   configTime(0, 0, NTP_SERVER);
@@ -121,16 +94,6 @@ bool sync_time() {
   });
 
   return true;
-}
-
-ClimateData read_climate() {
-  /* Reads temperature, humidity, and pressure from BME280. */
-  ClimateData data;
-  data.temperature = bme.readTemperature();
-  data.humidity = bme.readHumidity();
-  data.pressure = bme.readPressure() / 100.0F;
-
-  return data;
 }
 
 void enter_deep_sleep() {
