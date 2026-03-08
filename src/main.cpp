@@ -1,23 +1,17 @@
-#include <time.h>
-
 #include <Arduino.h>
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <esp_sleep.h>
-#include <Wire.h>
-
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
 
 #include "config.h"
 #include "debug.h"
-#include "ota.h"
-#include "wifi.h"
+
 #include "buffer.h"
 #include "influx.h"
 #include "sensor.h"
-#include "ntp.h"
 #include "sleep.h"
+#include "wifi.h"
+#include "ota.h"
+#include "ntp.h"
+
+/* TODO: Some comment or description of the program would be nice. */
 
 void setup() {
   init_hardware();
