@@ -1,5 +1,6 @@
 #include <time.h>
 
+#include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <esp_sleep.h>
