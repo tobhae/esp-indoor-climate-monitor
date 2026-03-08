@@ -6,8 +6,6 @@
 #include "config.h"
 #include "debug.h"
 
-/* TODO: Consider changing if (now < 10000) to if (now < 1700000000) */
-
 bool sync_time() {
   /* Synchronizes system time using NTP */
   configTime(0, 0, NTP_SERVER);
@@ -17,12 +15,12 @@ bool sync_time() {
 
   time_t now = time(nullptr);
 
-  while(now < 100000 && millis() - start < timeout) {
+  while(now < 1700000000UL && millis() - start < timeout) {
     delay(200);
     now = time(nullptr);
   }
 
-  if (now < 10000) {
+  if (now < 1700000000UL) {
     DEBUG_PRINTLN("NTP synchronization failed.");
     return false;
   }
