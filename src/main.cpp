@@ -17,6 +17,7 @@
 #include "influx.h"
 #include "sensor.h"
 #include "ntp.h"
+#include "sleep.h"
 
 void setup() {
   init_hardware();
@@ -57,14 +58,4 @@ void setup() {
 
 void loop() {
   /* Function unused. Execution cycle occurs entirely in setup() and enters deep sleep when finished. */
-}
-
-void enter_deep_sleep() {
-  DEBUG_PRINTLN("Shutting down WiFi and entering deep sleep.");
-
-  WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
-
-  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * 1000000ULL);
-  esp_deep_sleep_start();
 }
