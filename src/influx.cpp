@@ -7,8 +7,6 @@
 #include "config.h"
 #include "debug.h"
 
-/* TODO: Need to import ClimateData when it has been implemented to separate module. */
-
 /* Buffer for fully constructed InfluxDB write endpoint URL */
 char influx_url[256]; 
 
