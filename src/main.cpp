@@ -3,11 +3,11 @@
 #include "config.h"
 #include "debug.h"
 
+#include "network.h"
 #include "buffer.h"
 #include "influx.h"
 #include "sensor.h"
 #include "sleep.h"
-#include "wifi.h"
 #include "ota.h"
 #include "ntp.h"
 

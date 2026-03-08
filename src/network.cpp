@@ -1,8 +1,8 @@
-#include "wifi.h"
 
 #include <Arduino.h>
 #include <WiFi.h>
 
+#include "network.h"
 #include "config.h"
 #include "debug.h"
 
@@ -10,10 +10,10 @@ bool connect_wifi() {
   /* Attempts to connect to configured WiFi network */
   #if USE_STATIC_IP
   WiFi.config(
-    IPAddress (WIFI_STATIC_IP),
-    IPAddress (WIFI_DNS),
-    IPAddress (WIFI_GATEWAY),
-    IPAddress (WIFI_SUBNET));
+    IPAddress(STATIC_IP_ADDR),
+    IPAddress(DNS_ADDR),
+    IPAddress(GATEWAY_ADDR),
+    IPAddress(SUBNET_ADRR));
   #endif
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
