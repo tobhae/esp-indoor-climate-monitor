@@ -36,7 +36,7 @@ bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
   float pressure = data.pressure / (float)PRESSURE_SCALE;
 
   int len = snprintf(buffer, size, 
-  "indoor_climate,location=%s temperature=%.2f,humidity=%.2f,pressure=%.2f %ld",
+  "climate,location=%s temp=%.2f,hum=%.2f,pres=%.2f %ld",
   NODE_LOCATION, temperature, humidity, pressure, now);
 
   return (len > 0 && len < size);
