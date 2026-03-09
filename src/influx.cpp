@@ -6,6 +6,7 @@
 
 #include "config.h"
 #include "debug.h"
+#include "buffer.h"
 
 /* Buffer for fully constructed InfluxDB write endpoint URL */
 char influx_url[256]; 
@@ -18,7 +19,7 @@ void build_influxdb_url() {
 }
 
 /* Formats ClimateData into InfluxDB Line Protocol. */
-bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
+bool build_influx_payload(char* payload, size_t size, const ClimateData& data) {
   /* InfluxDB Line Protocol format:
 
      measurement, tag=value field1=value1, field2=value2, field3=value3 timestamp
@@ -35,9 +36,14 @@ bool build_influx_payload(char* buffer, size_t size, const ClimateData& data) {
   float humidity = data.humidity / (float)HUMIDITY_SCALE;
   float pressure = data.pressure / (float)PRESSURE_SCALE;
 
-  int len = snprintf(buffer, size, 
+  int len = snprintf(payload, size, 
   "climate,location=%s temp=%.2f,hum=%.2f,pres=%.2f %ld",
   NODE_LOCATION, temperature, humidity, pressure, now);
+
+  if (len < 0 || len >= sizeof(payload)) {
+    DEBUG_PRINTLN("Payload construction failed. ");
+    return false;
+  }
 
   return (len > 0 && len < size);
 }
