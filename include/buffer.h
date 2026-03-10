@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-constexpr size_t BUFFER_CAPACITY = 32;
+constexpr size_t BUFFER_CAPACITY = 64;
 constexpr size_t PAYLOAD_SIZE = 96;
 
 const char* buffer_peek();
