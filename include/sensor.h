@@ -20,10 +20,15 @@ struct ClimateData {
   uint16_t pressure;
 };
 
+/* Single buffered measurement with timestamp */
 struct ClimateSample {
   ClimateData data;
   uint32_t timestamp;
 };
+
+/* Ensure struct sizes remain stable for RTC buffer layout */
+static_assert(sizeof(ClimateData) == 6, "ClimateData size changed");
+static_assert(sizeof(ClimateSample) == 12, "ClimateSample size changed");
 
 ClimateData read_climate();
 void init_hardware();
