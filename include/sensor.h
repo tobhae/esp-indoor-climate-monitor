@@ -20,5 +20,10 @@ struct ClimateData {
   uint16_t pressure;
 };
 
+struct ClimateSample {
+  ClimateData data;
+  uint32_t timestamp;
+};
+
 ClimateData read_climate();
 void init_hardware();
