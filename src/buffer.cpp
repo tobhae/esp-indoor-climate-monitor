@@ -53,12 +53,18 @@ void buffer_pop() {
 
 /* Attempt to send all buffered payloads in FIFO order */
 bool flush_buffer() {
+  char payload[PAYLOAD_SIZE];
+
   while (buffer_count > 0) {
-    const char* payload = buffer_peek();
+    ClimateSample &sample = rtc_buffer[buffer_tail];
 
     /* Debugging prints */
     DEBUG_PRINT("Flushing entry, remaining: ");
     DEBUG_PRINTLN(buffer_count);
+
+    if (!build_influx_payload(payload, sizeof(payload), sample.data, sample.timestamp)) {
+      return false;
+    }
 
     if (!post_influxdb(payload, strlen(payload))) {
       return false;
